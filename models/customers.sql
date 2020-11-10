@@ -31,6 +31,14 @@ customer_orders as (
 
 ),
 
+order_payments as (
+    select 
+        customer_id,
+        order_id,
+        amount 
+    from {{ ref('orders')}}
+),
+
 
 final as (
 
@@ -40,11 +48,21 @@ final as (
         customers.last_name,
         customer_orders.first_order_date,
         customer_orders.most_recent_order_date,
-        coalesce(customer_orders.number_of_orders, 0) as number_of_orders
+        coalesce(customer_orders.number_of_orders, 0) as number_of_orders,
+        sum(ZEROIFNULL(order_payments.amount)) as lifetime_value
 
     from customers
 
     left join customer_orders using (customer_id)
+    left join order_payments using (customer_id)
+
+    group by
+    customers.customer_id,
+        customers.first_name,
+        customers.last_name,
+        customer_orders.first_order_date,
+        customer_orders.most_recent_order_date,
+        coalesce(customer_orders.number_of_orders, 0)
 
 )
 
